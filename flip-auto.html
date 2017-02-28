@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Document</title>
+<style>
+*{
+	margin:0;
+	padding:0;
+}
+#box{
+	border:1px solid red;
+	margin:300px auto;
+	width:600px;
+	height:100px;
+	overflow:hidden;
+}
+ul{
+	position:relative;
+}
+li{
+	list-style:none;
+	width:70px;
+	height:200px;
+	position:absolute;
+	
+}
+img{
+	height:100px;
+	width:70px;
+}
+</style>
+</head>
+<script src="myjs.js"></script>
+<script>
+window.onload=function(){
+	var imgArr=["0.jpg","1.jpg","2.jpg","3.jpg","4.jpg","5.jpg","6.jpg","7.jpg","8.jpg","9.jpg","colon.jpg"];
+	//初始化位置
+	var upDate=document.getElementById("time");
+
+	var aUl=document.getElementById("aUl");
+	var aLi=aUl.getElementsByTagName("li");
+	//var allTopPic=aLi.getElementsByTagName("img");//获得每个li的img集合
+
+	for (var i=0;i<aLi.length ;i++ )
+	{
+		aLi[i].style.left=75*i+"px";
+	}
+	
+	//翻页开关设置 初始化时间的时候不翻页 onOff=false
+	var onOff=false;
+
+	//初始化时间
+	showTime();
+
+	//记录最初的 时间字符串oriStr=getTime()
+	var oriStr=getTime();
+
+	//翻页动画
+	setInterval(showTime,1000);
+
+	////////////////////////////////////////////////////////////////////封装showTime函数
+	function showTime(){
+		
+		var str=getTime();
+		//获取图片的即时时间
+		var j=0;
+		for (var i=0;i<aLi.length ;i++ )
+		{  
+			if (i!=2&&i!=5)
+			{
+				var index=str.charAt(j);
+				aLi[i].getElementsByTagName("img")[0].src=imgArr[index];
+				j++;
+			}
+		}
+		//设置冒号闪烁
+		aLi[2].getElementsByTagName("img")[0].src="colon.jpg";
+		aLi[5].getElementsByTagName("img")[0].src="colon.jpg";
+		setTimeout(function(){
+			aLi[2].getElementsByTagName("img")[0].src="null.jpg";
+			aLi[5].getElementsByTagName("img")[0].src="null.jpg";
+		},500);
+		
+		//设置翻页 onOff=true才翻页
+		if (onOff==true)
+		{
+			var topP=aLi[7].getElementsByTagName("img")[0];
+			var bottomP=aLi[7].getElementsByTagName("img")[1];
+
+			//算法 例如初始化事件在第6小时（想象1秒为1小时 那么长）第6 小时内 顶部图片显示为当前时间6 底部显示为当前时间6加1为7 此时不翻动；第7小时的时候   顶部为当前-1 底部为当前时间7
+
+			//1 设置未运动前进入第7小时的时候 底部为当前 顶部为当前减去1
+			var curT=parseInt(getTime().charAt(5));
+			var preT=curT-1;
+			bottomP.src=imgArr[curT];
+			if (curT==0)
+			{
+				preT=9;
+			}
+			topP.src=imgArr[preT];
+			//console.log(curT+"qian hou "+preT);
+
+			//2开始运动 运动到顶部-100后 迅速把位置回复至top 0 完美解决 呵呵
+			doMove ( aLi[7], "top", 15, -100,function(){
+				aLi[7].style.top=0;
+				//改变顶部和底部的值 顶部为当前 底部不用管它
+				var curTLasting=parseInt(getTime().charAt(5));
+				topP.src=imgArr[curTLasting];
+			} );
+
+			//设置li 从0 -7 排除冒号位 2 5  7的翻动   0 1   3 4   6 
+			//方法 以小时为例 每次（每秒钟）都判断一次时针的当前值和前一秒的值是否相等 如果相等 就不运动 如果不想等 就运动
+			var m=0;
+			var curStr=getTime();//113501
+			for (var i=0;i<aLi.length ;i++ )
+			{
+				if (i!=2&&i!=5&&i!=7)//通过增加1个m 把i和m对应起来 m值是0 1 2 3 4 i值是 0 1  3 4   6 
+				{
+					//console.log(m+"m and i"+i);
+					//当前的字符串的m位置的值和oriStr的m位置的值比较 如果不相等 就运动
+					
+
+					var curValue=curStr.charAt(m);
+					var preValue;
+					curValue==0?preValue=9:preValue=curValue-1;
+					if (curValue!==oriStr.charAt(m))
+					{
+						//顶部为当前值-1 底部为当前
+						
+						var topLi=aLi[i].getElementsByTagName("img")[0];
+						var bottomLi=aLi[i].getElementsByTagName("img")[1];
+						topLi.src=imgArr[preValue];
+						bottomLi.src=imgArr[curValue];
+						//多个li遍历 每个li都会运动的时候 卡住了 问题在于回调函数的i的值回调函数里i的值因为是在运动后 已经发生了变化 所以会出问题 这个问题一定要突破
+						//doMove ( aLi[i], "top", 15, -100);单独运动就不会有问题 所以证明是回调出问题
+						slide(i,m);//解决办法 通过把函数封装其拉 传参 解决回调函数i值延时变换的问题
+					}
+					
+					m++;	
+				}
+			}
+
+		}
+
+
+		//翻页开关打开 第一次不翻页
+		if (onOff==false)
+		{
+			onOff=true;
+		}
+
+	}
+	////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////
+	function slide(i,j){
+		doMove ( aLi[i], "top", 15, -100,function(){
+			 aLi[i].style.top=0;
+			 //console.log(i);
+			//改变顶部和底部的值 顶部为当前 底部不用管它
+			var curTLasting=parseInt(getTime().charAt(j));
+			aLi[i].getElementsByTagName("img")[0].src=imgArr[curTLasting];
+			oriStr=getTime();
+		} );
+	}
+	////////////////////////////////////////////////////////////////////
+	
+
+};
+</script>
+<body>
+<div id="time"></div>
+<div id="box">
+	<ul id="aUl">
+		<li>
+			<img src="0.jpg">
+			<img src="1.jpg">
+		</li>
+		<li>
+			<img src="0.jpg">
+			<img src="0.jpg">
+		</li><li>
+			<img src="colon.jpg">
+		</li>
+		</li><li>
+			<img src="0.jpg">
+			<img src="0.jpg">
+		</li>
+		</li><li>
+			<img src="0.jpg">
+			<img src="0.jpg">
+		</li>
+		</li><li>
+			<img src="colon.jpg">
+		</li>
+		</li><li>
+			<img src="0.jpg">
+			<img src="0.jpg">
+		</li>
+		</li><li>
+			<img src="0.jpg">
+			<img src="0.jpg">
+		</li>
+	<ul>
+</div>
+</body>
+</html>
